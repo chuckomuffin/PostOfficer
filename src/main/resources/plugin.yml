@@ -1,0 +1,22 @@
+name: PostOfficer
+version: 1.6
+main: com.postofficer.PostOfficer
+api-version: 1.21
+description: A plugin that lets players create and manage PO Boxes and Post Office areas.
+commands:
+  po:
+    description: Main command for PostOfficer plugin
+    usage: /po <create|destroy|help>
+permissions:
+  postofficer.station:
+    description: Permission to create a Post Office
+    default: op
+  postofficer.destroy:
+    description: Permission to destroy a player's PO Box
+    default: op
+  postofficer.postal:
+    description: Permission to reset all Post Officers
+    default: op
+  postofficer.demolish:
+    description: Permission to demolish a Post Office
+    default: op
