@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.block.Barrel;
 import org.bukkit.entity.Allay;
 import org.bukkit.entity.Entity;
@@ -27,7 +28,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.Arrays;
-import java.util.UUID;  // Added
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class EventListener implements Listener {
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
-        UUID playerUUID = player.getUniqueId();  // Get the player's UUID
+        UUID playerUUID = player.getUniqueId();
 
         if (event.getBlock().getType() == Material.BARREL) {
             Barrel barrel = (Barrel) event.getBlock().getState();
@@ -134,39 +135,30 @@ public class EventListener implements Listener {
                     return;
                 }
 
-                // Get the barrel's location and adjust the particle placement to mimic the wax_on effect
-                Location barrelLocation = barrel.getLocation().add(0.5, 0.5, 0.5);  // Center of the block
+                Location barrelLocation = barrel.getLocation().add(0.5, 0.5, 0.5);
 
-                // Spawn particles around the edges of the barrel, like they appear on copper blocks
                 for (int i = 0; i < 10; i++) {
-                    // Randomly choose one of the six block faces (north, south, east, west, top, bottom)
                     int face = i % 6;
                     Location particleLoc = barrelLocation.clone();
 
-                    // Adjust the location to the surface of the block based on the selected face
                     switch (face) {
                         case 0: particleLoc.add(0, 0.5, 0); break;  // Top face
-                        case 1: particleLoc.add(0, -0.5, 0); break;  // Bottom face
-                        case 2: particleLoc.add(0.5, 0, 0); break;  // East face
-                        case 3: particleLoc.add(-0.5, 0, 0); break;  // West face
-                        case 4: particleLoc.add(0, 0, 0.5); break;  // South face
-                        case 5: particleLoc.add(0, 0, -0.5); break; // North face
+                        case 1: particleLoc.add(0, -0.5, 0); break;
+                        case 2: particleLoc.add(0.5, 0, 0); break;
+                        case 3: particleLoc.add(-0.5, 0, 0); break;
+                        case 4: particleLoc.add(0, 0, 0.5); break;
+                        case 5: particleLoc.add(0, 0, -0.5); break;
                     }
 
-                    // Minimal velocity to keep particles stationary around the block, like the wax_on effect
                     barrel.getWorld().spawnParticle(
                             Particle.WAX_ON,
-                            particleLoc,  // Position near the surface of the block
-                            1,            // Number of particles
-                            0, 0, 0,      // No offset (position should be static)
-                            0.02          // Small speed value for slight movement
+                            particleLoc,
+                            1, 0, 0, 0, 0.02
                     );
                 }
             }
-        }.runTaskTimer(plugin, 0L, 60L);  // Run every 3 seconds (60 ticks)
+        }.runTaskTimer(plugin, 0L, 60L);
     }
-
-
 
     private void stopParticleEffect(Barrel barrel) {
         // No action needed; particles disappear naturally when the barrel is empty
@@ -178,21 +170,16 @@ public class EventListener implements Listener {
         Entity entity = event.getRightClicked();
         Player player = event.getPlayer();
 
-        // Check if the entity is a Wandering Trader with the "Post Officer" custom name or metadata
         if (entity instanceof WanderingTrader && entity.hasMetadata("PostOfficer")) {
             event.setCancelled(true);  // Prevent the default trade window from opening
-
-            // Open the Postmaster's Almanac custom GUI
             openPostmastersAlmanac(player);
         }
     }
-
 
     // Custom GUI: Postmaster's Almanac
     private void openPostmastersAlmanac(Player player) {
         Inventory almanac = Bukkit.createInventory(null, 9, "Postmaster's Almanac");
 
-        // Calculate the time since server start in Minecraft units
         long ticks = Bukkit.getWorlds().get(0).getFullTime();
         TimeData timeData = calculateTimeSinceStart(ticks);
 
@@ -205,17 +192,45 @@ public class EventListener implements Listener {
         // "Send Allaygram" option
         ItemStack allaygramItem = createGuiItem(Material.FILLED_MAP, "Send Allaygram", "Send an item to a player!");
 
+        // Weather Forecast option
+        ItemStack weatherForecastItem = createGuiItem(Material.COMPASS, "Weather Forecast", "View the weather forecast");
+
         // Add items to the custom GUI
         almanac.setItem(0, yearsItem);
         almanac.setItem(1, monthsItem);
         almanac.setItem(2, weeksItem);
         almanac.setItem(3, daysItem);
-        almanac.setItem(8, allaygramItem);  // Place Allaygram option in the last slot
+        almanac.setItem(6, weatherForecastItem);  // Weather Forecast in slot 6
+        almanac.setItem(8, allaygramItem);  // Allaygram in the last slot
 
-        // Open the GUI for the player
         player.openInventory(almanac);
     }
 
+    // Weather Forecast GUI
+    private void openWeatherForecast(Player player) {
+        Inventory weatherInventory = Bukkit.createInventory(null, 9, "Weather Forecast");
+
+        World world = player.getWorld();
+        boolean isCurrentlyRaining = world.hasStorm();
+        boolean isThundering = world.isThundering();
+
+        String currentWeather = isThundering ? "Thunderstorm" : (isCurrentlyRaining ? "Rain" : "Clear");
+
+        // Prediction logic: Randomly predict rain or clear weather for the next day
+        Random random = new Random();
+        boolean willRainTomorrow = random.nextBoolean();
+        String predictedWeather = willRainTomorrow ? "Rain" : "Clear";
+
+        // Create items for weather forecast
+        ItemStack currentWeatherItem = createGuiItem(Material.WATER_BUCKET, "Current Weather", currentWeather);
+        ItemStack predictedWeatherItem = createGuiItem(Material.SUNFLOWER, "Tomorrow's Forecast", predictedWeather);
+
+        // Add weather items to the forecast GUI
+        weatherInventory.setItem(3, currentWeatherItem);
+        weatherInventory.setItem(5, predictedWeatherItem);
+
+        player.openInventory(weatherInventory);
+    }
 
     // Helper method to create items for the GUI
     private ItemStack createGuiItem(Material material, String name, String... lore) {
@@ -233,15 +248,19 @@ public class EventListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
-        String inventoryTitle = event.getView().getTitle();  // Get the title of the current inventory view
+        String inventoryTitle = event.getView().getTitle();
 
-        // Handle Postmaster's Almanac interactions
         if (inventoryTitle.equals("Postmaster's Almanac")) {
-            event.setCancelled(true);  // Prevent removing items
+            event.setCancelled(true);
 
-            // Handle clicking the "Send Allaygram" option
+            // Handle "Send Allaygram" option
             if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.FILLED_MAP) {
-                openPlayerSelectionGUI(player);  // Open the player selection GUI
+                openPlayerSelectionGUI(player);
+            }
+
+            // Handle "Weather Forecast" option
+            if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.COMPASS) {
+                openWeatherForecast(player);
             }
         }
         // Handle player selection in the "Select a Player" GUI
@@ -455,12 +474,11 @@ public class EventListener implements Listener {
 
     // Time calculation method to convert ticks into Minecraft years, months, weeks, and days
     private TimeData calculateTimeSinceStart(long ticks) {
-        long days = ticks / 24000;  // 1 Minecraft day = 24,000 ticks
-        long weeks = days / 7;      // 1 Minecraft week = 7 days
-        long months = days / 30;    // 1 Minecraft month = 30 days
-        long years = days / 365;    // 1 Minecraft year = 365 days
+        long days = ticks / 24000;
+        long weeks = days / 7;
+        long months = days / 30;
+        long years = days / 365;
 
-        // Remaining days, weeks, and months
         days = days % 7;
         weeks = weeks % 4;
         months = months % 12;
@@ -483,11 +501,10 @@ public class EventListener implements Listener {
         }
     }
 
-    // Cancel dragging items in the Postmaster's Almanac GUI
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (event.getView().getTitle().equals("Postmaster's Almanac")) {
-            event.setCancelled(true);  // Prevent dragging items
+            event.setCancelled(true);
         }
     }
 }
