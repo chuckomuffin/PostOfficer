@@ -1,5 +1,5 @@
 name: PostOfficer
-version: 1.6
+version: ${version}
 main: com.postofficer.PostOfficer
 api-version: 1.21
 description: A plugin that lets players create and manage PO Boxes and Post Office areas.
@@ -20,3 +20,4 @@ permissions:
   postofficer.demolish:
     description: Permission to demolish a Post Office
     default: op
+softdepend: [Vault]

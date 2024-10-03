@@ -12,10 +12,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.WanderingTrader;
+import org.bukkit.plugin.Plugin;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.milkbowl.vault.economy.EconomyResponse;
 
 public class POCommand implements CommandExecutor {
 
@@ -40,7 +43,26 @@ public class POCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            player.sendMessage("Usage: /po <create|destroy|postal|demolish>");
+            player.sendMessage("Usage: /po <create|destroy|postal|demolish|reload>");
+            return true;
+        }
+
+        // Handle "/po reload" command
+        if (args[0].equalsIgnoreCase("reload")) {
+            if (!player.hasPermission("postofficer.reload")) {
+                player.sendMessage("You don't have permission to use this command.");
+                return true;
+            }
+
+            // Logic to reload the plugin
+            Plugin plugin = Bukkit.getPluginManager().getPlugin("PostOfficer");
+            if (plugin != null) {
+                Bukkit.getPluginManager().disablePlugin(plugin);
+                Bukkit.getPluginManager().enablePlugin(plugin);
+                player.sendMessage("PostOfficer plugin has been reloaded.");
+            } else {
+                player.sendMessage("PostOfficer plugin not found.");
+            }
             return true;
         }
 

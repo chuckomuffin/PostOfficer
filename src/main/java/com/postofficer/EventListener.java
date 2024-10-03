@@ -1,6 +1,7 @@
 package com.postofficer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -34,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import net.milkbowl.vault.economy.Economy;
+
 public class EventListener implements Listener {
     private final POBoxManager poBoxManager;
     private final PostOfficeArea postOfficeArea;
@@ -58,13 +61,13 @@ public class EventListener implements Listener {
                 if (!poBoxManager.hasPOBox(playerUUID)) {
                     if (postOfficeArea.isWithinPostOffice(event.getBlock().getLocation())) {
                         poBoxManager.addPOBox(playerUUID, barrel.getLocation());
-                        player.sendMessage("Your PO Box has been created!");
+                        player.sendMessage(ChatColor.BLUE + "Your PO Box has been created!");
                     } else {
                         event.setCancelled(true);
-                        player.sendMessage("You can only place a PO Box inside a Post Office area!");
+                        player.sendMessage(ChatColor.BLUE + "You can only place a PO Box inside a Post Office area!");
                     }
                 } else {
-                    player.sendMessage("You already have a PO Box!");
+                    player.sendMessage(ChatColor.BLUE + "You already have a PO Box!");
                     event.setCancelled(true);
                 }
             }
@@ -82,10 +85,10 @@ public class EventListener implements Listener {
 
                 poBoxManager.removePOBox(ownerUUID);  // Remove the PO Box
                 if (owner != null && owner.isOnline()) {
-                    owner.sendMessage("Your PO Box has been destroyed!");
+                    owner.sendMessage(ChatColor.BLUE + "Your PO Box has been destroyed!");
                 }
 
-                event.getPlayer().sendMessage("You have destroyed " + ownerName + "'s PO Box.");
+                event.getPlayer().sendMessage(ChatColor.BLUE + "You have destroyed " + ownerName + "'s PO Box.");
             }
         }
     }
@@ -101,7 +104,7 @@ public class EventListener implements Listener {
                     startParticleEffect(barrel);
                     Player player = Bukkit.getPlayer(barrel.getCustomName().replace("'s Mailbox", ""));
                     if (player != null) {
-                        player.sendMessage("You have new mail!");
+                        player.sendMessage(ChatColor.BLUE + "You have new mail!");
                     }
                 }
             }
@@ -119,7 +122,7 @@ public class EventListener implements Listener {
                 Barrel barrel = (Barrel) poBoxLocation.getBlock().getState();
                 Inventory inventory = barrel.getInventory();
                 if (!inventory.isEmpty()) {
-                    player.sendMessage("You have mail waiting in your PO Box!");
+                    player.sendMessage(ChatColor.BLUE + "You have mail waiting in your PO Box!");
                 }
             }
         }
@@ -255,7 +258,11 @@ public class EventListener implements Listener {
 
             // Handle "Send Allaygram" option
             if (event.getCurrentItem() != null && event.getCurrentItem().getType() == Material.FILLED_MAP) {
-                openPlayerSelectionGUI(player);
+                if (plugin.getConfig().getBoolean("allaygram.enabled")) {
+                    openPlayerSelectionGUI(player);
+                } else {
+                    player.sendMessage(ChatColor.RED + "Allaygram is currently disabled.");
+                }
             }
 
             // Handle "Weather Forecast" option
@@ -276,7 +283,7 @@ public class EventListener implements Listener {
                     // Open the sender's inventory for item selection and track recipient
                     openItemSelectionGUI(player, selectedPlayer);
                 } else {
-                    player.sendMessage("The player you selected is not online.");
+                    player.sendMessage(ChatColor.BLUE + "The player you selected is not online.");
                 }
             }
         }
@@ -289,19 +296,30 @@ public class EventListener implements Listener {
             ItemStack selectedItem = event.getCurrentItem();  // The item being sent
 
             if (selectedItem != null && !selectedItem.getType().isAir()) {
-                // Send the selected item to the recipient using an Allay
-                sendAllaygram(player, recipient, selectedItem);
+                double cost = plugin.getConfig().getDouble("allaygram.cost");
+                Economy economy = ((PostOfficer) plugin).getEconomy();
+                String postOfficeAccount = ((PostOfficer) plugin).getPostOfficeAccount();
 
-                // Remove the item from the sender's inventory
-                player.getInventory().removeItem(selectedItem);
+                if (economy.has(player, cost)) {
+                    economy.withdrawPlayer(player, cost);
+                    economy.depositPlayer(postOfficeAccount, cost);
 
-                // Clear the tracking for this Allaygram
-                wandergramRecipients.remove(player);
+                    // Send the selected item to the recipient using an Allay
+                    sendAllaygram(player, recipient, selectedItem);
 
-                // Close the inventory after sending
-                player.closeInventory();
+                    // Remove the item from the sender's inventory
+                    player.getInventory().removeItem(selectedItem);
+
+                    // Clear the tracking for this Allaygram
+                    wandergramRecipients.remove(player);
+
+                    // Close the inventory after sending
+                    player.closeInventory();
+                } else {
+                    player.sendMessage(ChatColor.RED + "You do not have enough money to send an Allaygram.");
+                }
             } else {
-                player.sendMessage("Please select a valid item to send.");
+                player.sendMessage(ChatColor.BLUE + "Please select a valid item to send.");
             }
         }
     }
@@ -333,7 +351,7 @@ public class EventListener implements Listener {
     // Open inventory for item selection
     private void openItemSelectionGUI(Player sender, Player recipient) {
         // Inform the player to select an item to send
-        sender.sendMessage("Select an item to send to " + recipient.getName());
+        sender.sendMessage(ChatColor.BLUE + "Select an item to send to " + recipient.getName());
 
         // Track the recipient for the Wandergram
         wandergramRecipients.put(sender, recipient);
@@ -377,7 +395,7 @@ public class EventListener implements Listener {
                 if (allay.getLocation().distance(recipientHeadLocation) <= 1) {
                     // Deliver the item to the recipient's inventory
                     recipient.getInventory().addItem(item);
-                    sender.sendMessage("Your item has been sent to " + recipient.getName() + " via Allaygram!");
+                    sender.sendMessage(ChatColor.BLUE + "Your item has been sent to " + recipient.getName() + " via Allaygram!");
 
                     // Remove the item from the Allay's hand after delivery
                     allay.getEquipment().setItemInMainHand(null);

@@ -3,17 +3,19 @@ plugins {
 }
 
 group = "com.postofficer"
-version = "1.6"
+version = "1.7"
 description = "Post Officer Plugin for PaperMC"
 
 repositories {
     mavenCentral() // For JDK dependencies
-    maven ("https://papermc.io/repo/repository/maven-public/")
+    maven("https://papermc.io/repo/repository/maven-public/")
+    maven("https://jitpack.io") // Added repository
 }
 
 dependencies {
-    implementation ("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT") // Paper API dependency
-    testImplementation ("junit:junit:4.13.2")
+    implementation("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
+    implementation("com.github.MilkBowl:VaultAPI:1.7")
+    testImplementation("junit:junit:4.13.2")
 }
 
 java {

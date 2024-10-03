@@ -1,0 +1,5 @@
+economy:
+  starting_balance: 0.0
+allaygram:
+  enabled: true
+  cost: 1.0
